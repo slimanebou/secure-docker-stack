@@ -8,10 +8,13 @@ services:
     environment:
       DB_HOST: db                # nom du service = nom DNS
       DB_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     ports:
       - "5000:5000"              # TEMPORAIRE pour tester, retiré en phase 5
     depends_on:
       - db
+      - redis
 
   db:
     image: postgres:16
@@ -21,5 +24,14 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     # Aucun "ports:" : PostgreSQL n'est pas joignable depuis l'hôte
 
+  redis:
+    image: redis:7.4-alpine      # version figée, image légère
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    # Aucun "ports:" : Redis reste interne
+
 volumes:
   pgdata:                        # volume nommé, géré par Docker
+  redisdata:
+
