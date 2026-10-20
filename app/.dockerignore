@@ -1,0 +1,14 @@
+# Secrets
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Inutile dans l'image
+.git
+Dockerfile
+.dockerignore
+*.md

@@ -7,6 +7,7 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+app.json.ensure_ascii = False   # affiche "données" au lieu de "donn\u00e9es"
 # Configuration lue dans les variables d'environnement (fournies plus tard par Compose)
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "db"),          # "db" = nom du service Compose
