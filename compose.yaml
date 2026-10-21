@@ -10,7 +10,14 @@ services:
     networks:
       - frontend-net
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
 
 
   app:
@@ -26,9 +33,17 @@ services:
       - frontend-net
       - backend-net
     depends_on:
-      - db
-      - redis
-
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen<en('http://127.0.0.1:5000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
   db:
     image: postgres:16
     env_file: .env               # l'image postgres crée la base et l'utilisateur
@@ -38,10 +53,34 @@ services:
     # Aucun "ports:" : PostgreSQL n'est pas joignable depuis l'hôte
     networks:
       - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
 
   redis:
     image: redis:7.4-alpine      # version figée, image légère
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
-    # 
+    # Aucun "ports:" : Redis reste interne
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  pgdata:                        # volume nommé, géré par Docker
+  redisdata:
+
+networks:
+  frontend-net:
+  backend-net:
+    internal: true               # pas de sortie vers Internet
