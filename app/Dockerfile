@@ -1,5 +1,5 @@
 # ============ Étape 1 : builder (jetée à la fin) ============
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.13-slim-trixie AS builder
 
 # Environnement virtuel isolé : facile à copier d'une étape à l'autre
 RUN python -m venv /opt/venv
@@ -10,15 +10,23 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# pip n'est utile qu'à l'installation : on le retire du venv
+RUN python -m pip uninstall -y pip
 
 # ============ Étape 2 : image finale ============
-FROM python:3.13-slim-bookworm
+FROM python:3.13-slim-trixie
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
-# Utilisateur système sans shell ni home, UID fixe
+# Correctifs de sécurité Debian + suppression du pip de l'image de base
+RUN apt-get update \
+ && apt-get upgrade -y \
+ && python -m pip uninstall -y pip \
+ && rm -rf /var/lib/apt/lists/*
+
+# Utilisateur système sans shell ni home, UID fixe (Créer un utilisateur non-root)
 RUN groupadd --system --gid 10001 appuser \
  && useradd --system --uid 10001 --gid appuser \
             --no-create-home --shell /usr/sbin/nologin appuser
@@ -26,8 +34,11 @@ RUN groupadd --system --gid 10001 appuser \
 # On récupère UNIQUEMENT le venv construit dans l'étape builder
 COPY --from=builder /opt/venv /opt/venv
 
+#définit le répertoire de travail.
 WORKDIR /app
+
 # Le code appartient à root : appuser peut le lire, pas le modifier
+#copie fichier Python dans /app.
 COPY app.py .
 
 USER appuser

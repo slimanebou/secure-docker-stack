@@ -22,7 +22,7 @@ services:
 
   app:
     build: ./app                 # construit depuis app/Dockerfile
-    image: monapp:1.0            # et nomme l'image avec un tag fixe
+    image: monapp:1.1            # et nomme l'image avec un tag fixe
     env_file: .env               # POSTGRES_DB / USER / PASSWORD
     environment:
       DB_HOST: db                # nom du service = nom DNS
@@ -38,12 +38,13 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen<en('http://127.0.0.1:5000/health', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
   db:
     image: postgres:16
     env_file: .env               # l'image postgres crée la base et l'utilisateur
