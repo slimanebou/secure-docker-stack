@@ -1,0 +1,317 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>secure-docker-stack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout : en-tête compact, schéma pleine largeur, puis suivi des phases + tableaux de référence */
+:root{
+  --bg:#f5f7f9; --panel:#ffffff; --fg:#17212b; --muted:#5b6b7a; --line:#c9d3dc;
+  --host:#e9eef3; --front:#0f8a83; --front-bg:rgba(15,138,131,.08);
+  --back:#b86b0c; --back-bg:rgba(184,107,12,.08); --sec:#b3263e; --vol:#5a4fb3; --ok:#2f8a3e;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --panel:#161e26; --fg:#e4ebf1; --muted:#93a3b2; --line:#2c3a47;
+  --host:#121a21; --front:#3cc2b8; --front-bg:rgba(60,194,184,.09);
+  --back:#e8a14a; --back-bg:rgba(232,161,74,.09); --sec:#f06a80; --vol:#a69cf5; --ok:#5fc46f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --panel:#161e26; --fg:#e4ebf1; --muted:#93a3b2; --line:#2c3a47;
+  --host:#121a21; --front:#3cc2b8; --front-bg:rgba(60,194,184,.09);
+  --back:#e8a14a; --back-bg:rgba(232,161,74,.09); --sec:#f06a80; --vol:#a69cf5; --ok:#5fc46f; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;align-items:end}
+h1{font-size:30px;margin:0;letter-spacing:-.01em;font-family:var(--mono);font-weight:600}
+.sub{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.stack{font-family:var(--mono);font-size:13px;color:var(--muted)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 12px;font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px}
+.scroll{overflow-x:auto}
+svg{display:block;width:100%;min-width:780px;height:auto}
+svg text{font-family:var(--sans);fill:var(--fg)}
+.t-mono{font-family:var(--mono)!important}
+.t-muted{fill:var(--muted)!important}
+.box{fill:var(--panel);stroke:var(--fg);stroke-width:1.4}
+.hostbox{fill:var(--host);stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 4}
+.zf{fill:var(--front-bg);stroke:var(--front);stroke-width:1.5}
+.zb{fill:var(--back-bg);stroke:var(--back);stroke-width:1.5}
+.lf{fill:var(--front)!important} .lb{fill:var(--back)!important}
+.flow{stroke:var(--fg);stroke-width:1.8;fill:none}
+.flowf{stroke:var(--front);stroke-width:2;fill:none}
+.flowb{stroke:var(--back);stroke-width:2;fill:none}
+.dash{stroke:var(--muted);stroke-width:1.3;stroke-dasharray:4 4;fill:none}
+.secl{stroke:var(--sec);stroke-width:1.6;stroke-dasharray:5 4;fill:none}
+.port{fill:var(--fg)} .port-t{fill:var(--bg)!important;font-family:var(--mono)!important;font-weight:600}
+.hc{fill:var(--ok)!important;font-family:var(--mono)!important;font-size:11px}
+.vol{fill:none;stroke:var(--vol);stroke-width:1.4} .volt{fill:var(--vol)!important;font-family:var(--mono)!important;font-size:12px}
+.sec{fill:var(--panel);stroke:var(--sec);stroke-width:1.4} .sect{fill:var(--sec)!important}
+.badge circle{fill:var(--fg)} .badge text{fill:var(--bg);font-family:var(--mono);font-size:11px;font-weight:600}
+.cfg{fill:var(--panel);stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3}
+.ph{transition:opacity .25s}
+.ph.future{opacity:.28}
+@media (prefers-reduced-motion:reduce){.ph{transition:none}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:22px;height:0;border-top:2px solid}
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px}
+@media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.phases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.phases button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:30px 26px minmax(0,1fr);gap:10px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer}
+.phases button:hover{background:var(--host)}
+.phases button:focus-visible{outline:2px solid var(--front);outline-offset:1px}
+.num{font-family:var(--mono);font-weight:600;color:var(--muted)}
+.st{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700}
+.done .st{background:var(--ok);border-color:var(--ok);color:var(--panel)}
+.cur .st{border-color:var(--front);box-shadow:inset 0 0 0 4px var(--front)}
+.cur{background:var(--front-bg)}
+.pname{font-weight:500}
+.pdesc{display:block;font-size:13px;color:var(--muted);font-weight:400}
+.bar{height:8px;background:var(--host);border-radius:4px;overflow:hidden;margin:4px 0 14px;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--front);transition:width .3s}
+.hint{font-size:13px;color:var(--muted);margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td code,.mono{font-family:var(--mono);font-size:13px}
+.tag{font-family:var(--mono);font-size:12px;padding:1px 6px;border-radius:3px;border:1px solid}
+.tf{color:var(--front);border-color:var(--front)} .tb{color:var(--back);border-color:var(--back)} .th{color:var(--muted);border-color:var(--line)}
+.pitch{font-size:16px;max-width:70ch;margin:0}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>secure-docker-stack</h1>
+      <p class="sub">Application multi-conteneurs sécurisée : reverse proxy, API, base de données, cache, isolation réseau et scan de vulnérabilités.</p>
+    </div>
+    <div class="stack">Nginx · Flask/Gunicorn · PostgreSQL · Redis · Trivy · Docker Compose</div>
+  </header>
+
+  <section class="card">
+    <h2>Architecture</h2>
+    <div class="scroll">
+<svg viewBox="0 0 1000 640" role="img" aria-label="Schéma d'architecture : navigateur vers Nginx sur le port 8080, Nginx vers Flask sur le réseau frontend-net, Flask vers PostgreSQL et Redis sur le réseau backend-net">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--fg)"/></marker>
+    <marker id="arf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--front)"/></marker>
+    <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--back)"/></marker>
+    <marker id="ars" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--sec)"/></marker>
+  </defs>
+
+  <!-- Hôte -->
+  <rect class="hostbox" x="190" y="16" width="796" height="608" rx="10"/>
+  <text x="208" y="40" font-size="13" font-weight="600">Hôte Debian 13 · Docker Engine</text>
+  <text x="208" y="57" font-size="12" class="t-muted t-mono">projet Compose : secure-docker-stack</text>
+
+  <!-- Réseaux -->
+  <g class="ph" data-phase="5">
+    <rect class="zb" x="470" y="70" width="496" height="534" rx="8"/>
+    <text x="948" y="94" font-size="13" font-weight="600" text-anchor="end" class="lb t-mono">backend-net</text>
+    <text x="948" y="110" font-size="11" text-anchor="end" class="lb">internal: true · pas d'accès Internet</text>
+    <rect class="zf" x="222" y="236" width="434" height="168" rx="8"/>
+    <text x="238" y="258" font-size="13" font-weight="600" class="lf t-mono">frontend-net</text>
+  </g>
+
+  <!-- Navigateur -->
+  <rect class="box" x="18" y="282" width="140" height="76" rx="6"/>
+  <text x="88" y="314" font-size="14" font-weight="600" text-anchor="middle">Navigateur</text>
+  <text x="88" y="334" font-size="11" text-anchor="middle" class="t-mono t-muted">localhost:8080</text>
+
+  <!-- Port publié -->
+  <g class="ph" data-phase="5">
+    <line class="flow" x1="158" y1="320" x2="250" y2="320" marker-end="url(#ar)"/>
+    <rect class="port" x="168" y="300" width="44" height="20" rx="3"/>
+    <text x="190" y="314" font-size="11" text-anchor="middle" class="port-t">8080</text>
+    <text x="174" y="343" font-size="10" class="t-muted t-mono">seul port</text>
+    <text x="174" y="355" font-size="10" class="t-muted t-mono">exposé</text>
+  </g>
+
+  <!-- Nginx -->
+  <g class="ph" data-phase="5">
+    <rect class="box" x="252" y="276" width="160" height="96" rx="6"/>
+    <text x="270" y="302" font-size="15" font-weight="600">nginx</text>
+    <text x="270" y="320" font-size="11" class="t-muted">reverse proxy</text>
+    <text x="270" y="338" font-size="11" class="t-mono t-muted">écoute :80 (→ 8080 hôte)</text>
+    <text x="270" y="360" class="hc">♥ healthcheck</text>
+    <g class="badge"><circle cx="404" cy="276" r="10"/><text x="404" y="280" text-anchor="middle">5</text></g>
+  </g>
+
+  <!-- Flux nginx -> app -->
+  <g class="ph" data-phase="5">
+    <line class="flowf" x1="412" y1="324" x2="494" y2="324" marker-end="url(#arf)"/>
+    <text x="453" y="314" font-size="11" text-anchor="middle" class="lf t-mono">proxy_pass</text>
+    <text x="453" y="342" font-size="11" text-anchor="middle" class="lf t-mono">app:5000</text>
+  </g>
+
+  <!-- App -->
+  <g class="ph" data-phase="1">
+    <rect class="box" x="496" y="262" width="150" height="124" rx="6"/>
+    <text x="512" y="288" font-size="15" font-weight="600">app</text>
+    <text x="512" y="306" font-size="11" class="t-muted">Flask + Gunicorn</text>
+    <text x="512" y="324" font-size="11" class="t-mono t-muted">:5000 (interne)</text>
+    <text x="512" y="342" font-size="11" class="t-mono t-muted">/  /health  /clients</text>
+    <text x="512" y="360" font-size="11" class="t-mono t-muted">user non-root</text>
+    <text x="512" y="376" class="hc">♥ /health</text>
+    <g class="badge"><circle cx="638" cy="262" r="10"/><text x="638" y="266" text-anchor="middle">1</text></g>
+  </g>
+  <g class="ph" data-phase="2">
+    <rect class="cfg" x="496" y="398" width="150" height="40" rx="4"/>
+    <text x="571" y="414" font-size="11" text-anchor="middle" class="t-mono">image monapp:1.0</text>
+    <text x="571" y="429" font-size="10" text-anchor="middle" class="t-muted">Dockerfile multi-stage</text>
+    <g class="badge"><circle cx="638" cy="398" r="10"/><text x="638" y="402" text-anchor="middle">2</text></g>
+  </g>
+
+  <!-- .env -->
+  <g class="ph" data-phase="3">
+    <rect class="cfg" x="500" y="134" width="142" height="48" rx="4"/>
+    <text x="571" y="154" font-size="12" text-anchor="middle" class="t-mono">.env</text>
+    <text x="571" y="171" font-size="10" text-anchor="middle" class="t-muted">env_file · hors de Git</text>
+    <line class="dash" x1="571" y1="182" x2="571" y2="260"/>
+    <line class="dash" x1="642" y1="158" x2="756" y2="158"/>
+  </g>
+
+  <!-- PostgreSQL -->
+  <g class="ph" data-phase="3">
+    <rect class="box" x="758" y="128" width="182" height="108" rx="6"/>
+    <text x="776" y="154" font-size="15" font-weight="600">db</text>
+    <text x="776" y="172" font-size="11" class="t-muted">PostgreSQL</text>
+    <text x="776" y="190" font-size="11" class="t-mono t-muted">:5432 (interne)</text>
+    <text x="776" y="208" font-size="11" class="t-mono t-muted">init.sql → table clients</text>
+    <text x="776" y="226" class="hc">♥ pg_isready</text>
+    <g class="badge"><circle cx="932" cy="128" r="10"/><text x="932" y="132" text-anchor="middle">3</text></g>
+    <path class="flowb" d="M646 296 C 700 296, 700 200, 756 200" marker-end="url(#arb)"/>
+    <text x="704" y="234" font-size="11" text-anchor="middle" class="lb t-mono">SQL</text>
+    <text x="704" y="248" font-size="11" text-anchor="middle" class="lb t-mono">db:5432</text>
+  </g>
+  <g class="ph" data-phase="6">
+    <path class="vol" d="M800 252 h96 v26 h-96 z"/>
+    <text x="848" y="270" text-anchor="middle" class="volt">vol. pgdata</text>
+    <line class="dash" x1="848" y1="236" x2="848" y2="252"/>
+  </g>
+
+  <!-- Redis -->
+  <g class="ph" data-phase="4">
+    <rect class="box" x="758" y="404" width="182" height="96" rx="6"/>
+    <text x="776" y="430" font-size="15" font-weight="600">redis</text>
+    <text x="776" y="448" font-size="11" class="t-muted">cache · TTL 30 s</text>
+    <text x="776" y="466" font-size="11" class="t-mono t-muted">:6379 (interne)</text>
+    <text x="776" y="488" class="hc">♥ redis-cli ping</text>
+    <g class="badge"><circle cx="932" cy="404" r="10"/><text x="932" y="408" text-anchor="middle">4</text></g>
+    <path class="flowb" d="M646 352 C 700 352, 700 452, 756 452" marker-end="url(#arb)"/>
+    <text x="704" y="414" font-size="11" text-anchor="middle" class="lb t-mono">cache</text>
+    <text x="704" y="428" font-size="11" text-anchor="middle" class="lb t-mono">redis:6379</text>
+  </g>
+  <g class="ph" data-phase="6">
+    <path class="vol" d="M800 516 h96 v26 h-96 z"/>
+    <text x="848" y="534" text-anchor="middle" class="volt">vol. redisdata</text>
+    <line class="dash" x1="848" y1="500" x2="848" y2="516"/>
+  </g>
+
+  <!-- Robustesse -->
+  <g class="ph" data-phase="6">
+    <rect class="cfg" x="500" y="470" width="226" height="74" rx="4"/>
+    <text x="514" y="490" font-size="12" font-weight="600">Robustesse (Compose)</text>
+    <text x="514" y="508" font-size="11" class="t-mono t-muted">restart: unless-stopped</text>
+    <text x="514" y="524" font-size="11" class="t-mono t-muted">depends_on: service_healthy</text>
+    <text x="514" y="540" font-size="11" class="t-mono t-muted">♥ healthcheck ×4</text>
+    <g class="badge"><circle cx="718" cy="470" r="10"/><text x="718" y="474" text-anchor="middle">6</text></g>
+  </g>
+
+  <!-- Trivy -->
+  <g class="ph" data-phase="8">
+    <rect class="sec" x="222" y="470" width="214" height="104" rx="6"/>
+    <text x="238" y="496" font-size="15" font-weight="600" class="sect">trivy</text>
+    <text x="238" y="514" font-size="11" class="t-muted">scan de sécurité (hors runtime)</text>
+    <text x="238" y="532" font-size="11" class="t-mono t-muted">--severity HIGH,CRITICAL</text>
+    <text x="238" y="550" font-size="11" class="t-mono t-muted">rapport avant / après</text>
+    <text x="238" y="566" font-size="10" class="t-mono t-muted">docs/trivy/*.txt</text>
+    <g class="badge"><circle cx="428" cy="470" r="10"/><text x="428" y="474" text-anchor="middle">8</text></g>
+    <path class="secl" d="M436 510 C 470 510, 470 418, 494 418" marker-end="url(#ars)"/>
+    <text x="462" y="456" font-size="11" text-anchor="middle" class="sect t-mono">scanne</text>
+  </g>
+
+  <!-- Légende ports internes -->
+  <text x="208" y="610" font-size="11" class="t-muted">Les ports 5000, 5432 et 6379 ne sont jamais publiés sur l'hôte : les services se joignent par leur nom (DNS interne Docker).</text>
+</svg>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="border-color:var(--fg)"></i>HTTP depuis l'hôte</span>
+      <span><i class="sw" style="border-color:var(--front)"></i>frontend-net (nginx ↔ app)</span>
+      <span><i class="sw" style="border-color:var(--back)"></i>backend-net (app ↔ db, redis)</span>
+      <span><i class="sw" style="border-color:var(--sec);border-top-style:dashed"></i>scan Trivy</span>
+      <span><i class="sw" style="border-color:var(--vol)"></i>volume nommé</span>
+      <span>● n = phase où l'élément est construit</span>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Où on en est</h2>
+      <div class="bar" aria-hidden="true"><i id="barfill"></i></div>
+      <ol class="phases" id="phases"></ol>
+      <p class="hint">Clique sur la phase en cours : le schéma estompe ce qui reste à construire.</p>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <section class="card">
+        <h2>Flux et ports</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>De → vers</th><th>Port</th><th>Réseau</th></tr></thead>
+          <tbody>
+            <tr><td>Navigateur → nginx</td><td class="mono">8080 → 80</td><td><span class="tag th">hôte</span></td></tr>
+            <tr><td>nginx → app</td><td class="mono">5000</td><td><span class="tag tf">frontend-net</span></td></tr>
+            <tr><td>app → db</td><td class="mono">5432</td><td><span class="tag tb">backend-net</span></td></tr>
+            <tr><td>app → redis</td><td class="mono">6379</td><td><span class="tag tb">backend-net</span></td></tr>
+          </tbody>
+        </table></div>
+        <p class="hint">nginx n'est pas sur backend-net : même compromis, il ne peut pas atteindre la base.</p>
+      </section>
+
+      <section class="card">
+        <h2>Pitch recruteur (30 s)</h2>
+        <p class="pitch">J'ai déployé une application Flask derrière un reverse proxy Nginx, avec PostgreSQL et Redis, orchestrée par Docker Compose. Seul le port 8080 est exposé. Deux réseaux isolent le proxy de la base, les secrets sont dans un .env hors de Git, l'image est multi-stage et tourne en non-root. J'ai scanné l'image avec Trivy, corrigé les CVE HIGH et CRITICAL corrigeables, et documenté le risque résiduel.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var phases=[
+    ["Préparation","Arborescence, Git, .gitignore, .gitattributes"],
+    ["Backend Flask","Routes /, /health, /clients"],
+    ["Image Docker","Multi-stage, non-root, .dockerignore, tag 1.0"],
+    ["App + PostgreSQL","compose.yaml, .env, init.sql"],
+    ["Redis","Cache des clients"],
+    ["Nginx + réseaux","proxy_pass, frontend-net / backend-net, port 8080"],
+    ["Robustesse","Healthchecks, depends_on, volumes, restart"],
+    ["Tests","Persistance, DNS, logs"],
+    ["Trivy","Scan → correction → rescan"],
+    ["Documentation","README, schéma, résultats"]
+  ];
+  var current=1;
+  try{var s=localStorage.getItem("sds-phase");if(s!==null&&!isNaN(+s))current=+s;}catch(e){}
+  var list=document.getElementById("phases");
+  function render(){
+    list.innerHTML="";
+    phases.forEach(function(p,i){
+      var li=document.createElement("li");
+      var b=document.createElement("button");
+      b.type="button";b.id="phase-"+i;
+      b.className=i<current?"done":(i===current?"cur":"");
+      b.setAttribute("aria-current",i===current?"step":"false");
+      b.innerHTML='<span class="num">'+i+'</span><span class="st">'+(i<current?"✓":"")+'</span><span class="pname">'+p[0]+'<span class="pdesc">'+p[1]+'</span></span>';
+      b.addEventListener("click",function(){current=i;try{localStorage.setItem("sds-phase",String(i));}catch(e){}render();});
+      li.appendChild(b);list.appendChild(li);
+    });
+    document.getElementById("barfill").style.width=(current/phases.length*100)+"%";
+    document.querySelectorAll(".ph").forEach(function(g){
+      g.classList.toggle("future",+g.getAttribute("data-phase")>current);
+    });
+  }
+  render();
+})();
+</script>
+
+</body></html>

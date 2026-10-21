@@ -87,7 +87,7 @@ services:
 
   # Trivy : scanner de vulnérabilités
   trivy:
-    image: aquasec/trivy:0.76.0        # mets la version exacte de "trivy --version"
+    image: aquasec/trivy:0.76.1        # mets la version exacte de "trivy --version"
     profiles: ["security"]             # ne démarre PAS avec "docker compose up"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
