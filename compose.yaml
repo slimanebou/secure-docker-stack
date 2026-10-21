@@ -19,7 +19,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-
   app:
     build: ./app                 # construit depuis app/Dockerfile
     image: monapp:1.1            # et nomme l'image avec un tag fixe
@@ -44,6 +43,15 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
+    # Sécurité renforcée : l'application ne peut pas écrire sur le système de fichiers du conteneur
+    read_only: true                    # système de fichiers en lecture seule
+    tmpfs:
+      - /tmp                           # seul espace inscriptible (en RAM), utilisé par gunicorn
+    security_opt:
+      - no-new-privileges:true         # les binaires setuid (mount…) ne donnent plus root
+    cap_drop:
+      - ALL                            # aucune capability Linux
 
   db:
     image: postgres:16
@@ -77,9 +85,22 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Trivy : scanner de vulnérabilités
+  trivy:
+    image: aquasec/trivy:0.76.0        # mets la version exacte de "trivy --version"
+    profiles: ["security"]             # ne démarre PAS avec "docker compose up"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - trivy-cache:/root/.cache/trivy
+      - ./docs/trivy:/reports
+    command: >
+      image --severity HIGH,CRITICAL --format table
+      --output /reports/compose-scan-monapp-1.1.txt monapp:1.1
+
 volumes:
   pgdata:                        # volume nommé, géré par Docker
   redisdata:
+  trivy-cache:
 
 networks:
   frontend-net:
