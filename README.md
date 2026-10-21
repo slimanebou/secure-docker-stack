@@ -332,7 +332,3 @@ Ces vulnérabilités ne sont pas masquées (pas de `.trivyignore`) : elles reste
 | Risque de fichiers en CRLF depuis Windows | Fins de ligne Windows incompatibles avec les conteneurs Linux | `.gitattributes` : `* text=auto eol=lf` |
 
 ---
-
-## Auteur
-
-**Slimane Bouaroua** · Master 2 Ingénierie Réseaux et Systèmes
